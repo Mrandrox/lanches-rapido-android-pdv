@@ -12,7 +12,9 @@
     "pack:win": "electron-builder --win --x64 --config",
     "dist:win": "electron-builder --win --x64 --config",
     "android:bundle": "cd android && gradle bundleRelease 2>/dev/null || ./gradlew bundleRelease",
-    "android:apk": "cd android && gradle assembleRelease 2>/dev/null || ./gradlew assembleRelease"
+    "android:apk": "cd android && gradle assembleRelease 2>/dev/null || ./gradlew assembleRelease",
+    "android:bloco-apk": "cd android && gradle :bloco:assembleRelease 2>/dev/null || ./gradlew :bloco:assembleRelease",
+    "test:pedidos": "npm --prefix pedidos test"
   },
   "author": "",
   "license": "MIT",
