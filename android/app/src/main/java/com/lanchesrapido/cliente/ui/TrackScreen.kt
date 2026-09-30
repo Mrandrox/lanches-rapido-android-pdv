@@ -51,27 +51,29 @@ private val STATUS_TEXT = mapOf(
 fun TrackScreen(refreshKey: Int = 0) {
     val context = LocalContext.current
     var orderId by remember { mutableStateOf(AppData.loadLastOrder(context)) }
-    var id by remember { mutableStateOf(orderId) }
+    var id by remember { mutableStateOf(AppData.loadLastOrder(context)) }
     var order by remember { mutableStateOf<TrackOrder?>(null) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
 
-    LaunchedEffect(refreshKey) {
-        val last = AppData.loadLastOrder(context)
-        if (last.isNotBlank()) {
-            orderId = last
-            id = last
-        }
+    LaunchedEffect(refreshKey, id) {
         if (id.isBlank()) return@LaunchedEffect
+        var wait = 4000L
         while (true) {
             try {
-                order = Api.track(id)
+                val current = Api.track(id)
+                order = current
                 loading = false
                 error = ""
+                wait = 4000L
+                // Pedido encerrado: para de consultar para não gastar bateria/dados.
+                if (current.status == "delivered" || current.status == "finished" || current.status == "canceled") break
             } catch (e: Exception) {
                 if (order == null) error = (e as? ApiException)?.message ?: e.message ?: "Pedido não encontrado."
+                // Backoff: falha de rede não vira loop apertado (4s -> 8s -> 16s -> 30s).
+                wait = (wait * 2).coerceAtMost(30_000L)
             }
-            delay(4000)
+            delay(wait)
         }
     }
 
@@ -87,7 +89,18 @@ fun TrackScreen(refreshKey: Int = 0) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedButton(onClick = { id = orderId.trim() }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = {
+                val target = orderId.trim()
+                if (target.isNotEmpty() && target != id) {
+                    order = null
+                    error = ""
+                    loading = true
+                }
+                id = target
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("🔎 Buscar")
         }
 

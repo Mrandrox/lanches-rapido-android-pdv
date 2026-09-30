@@ -79,6 +79,75 @@ npm run dist:win
 ```
 </details>
 
+## Android — instalar em qualquer celular
+
+O APK é **universal**: 1,3 MB, `minSdk 26` (Android 8.0 ou superior), sem bibliotecas nativas pesadas, apenas as permissões `INTERNET` e `ACCESS_NETWORK_STATE`. Instala em qualquer Android 8+ (arm64, armeabi-v7a, x86, x86_64).
+
+```bash
+npm run android:apk       # gera o APK release assinado
+npm run android:bundle    # gera o AAB para a Play Store
+```
+
+Depois de compilar, os artefatos ficam em:
+
+- `android/app/build/outputs/apk/release/app-release.apk`
+- `android/app/build/outputs/bundle/release/app-release.aab`
+
+> **Antes de compilar**, o JDK e o Android SDK precisam estar no `PATH` (eles não vêm por padrão aqui):
+>
+> ```bash
+> export JAVA_HOME=/home/mosh/tools/jdk17
+> export ANDROID_HOME=/home/mosh/tools/android-sdk
+> export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+> ```
+
+### Instalar direto no celular (sem Play Store)
+
+1. Copie `dist/android/Lanches-Rapido-app-release-1.0.0.apk` para o celular (cabo, WhatsApp, Google Drive, pendrive OTG).
+2. Abra o arquivo no celular.
+3. O Android vai avisar que o app veio de "fonte desconhecida" — permita **uma vez** nas configurações que aparecer.
+4. Toque em **Instalar**.
+
+> A assinatura é a mesma em todas as versões (`SHA-256 314b5e82…dec`). Isso é o que permite **atualizar por cima** sem desinstalar: basta instalar o APK novo, o app e o endereço salvo são preservados. Se a assinatura mudar, o Android recusa a atualização e exige desinstalar.
+
+### Endereço do servidor (o app funciona em qualquer rede)
+
+Na aba **Servidor** do app, cole o endereço da loja. O app aceita o que for digitado e normaliza sozinho:
+
+| O usuário digita | O app conecta em |
+|---|---|
+| `192.168.0.10:4175` | `http://192.168.0.10:4175` |
+| `192.168.0.10` | `http://192.168.0.10:4175` (porta preenchida) |
+| `loja.com.br` | `http://loja.com.br` |
+| `https://pedidos.loja.com.br` | `https://pedidos.loja.com.br` (mantém caminho e https) |
+
+IPs privados (`192.168.*`, `10.*`, `172.16-31.*`) e `localhost` recebem a porta `4175` automaticamente. Domínios externos assumem as portas padrão do HTTPS.
+
+### Usar fora da rede local (internet)
+
+O servidor escuta em todas as interfaces, então qualquer celular na mesma rede já funciona. Para o app funcionar **fora da LAN** são necessárias duas coisas: um endereço público e **HTTPS** (o Android bloqueia HTTP em destinos externos, e a Play Store exige).
+
+**Opção A — o servidor com HTTPS direto.** Gere um certificado (Let's Encrypt ou o do seu provedor) e inicie com:
+
+```bash
+TLS_CERT=/caminho/cert.pem TLS_KEY=/caminho/key.pem npm run server
+```
+
+O servidor passa a responder em `https://` com o mesmo código, sem nenhuma configuração extra no app.
+
+**Opção B — proxy reverso.** Coloque o servidor atrás de Nginx/Caddy/Traefik e termine o TLS lá. O processo Node continua em `http://127.0.0.1:4175`.
+
+Depois, o cliente digita `https://seu-dominio.com.br` na aba **Servidor**.
+
+### Atualizar o app depois
+
+Recompile e reinstale por cima — os dados ficam. **Regra do Android:** `versionCode` precisa aumentar a cada publicação. Para subir a versão, edite `android/app/build.gradle.kts`:
+
+```kotlin
+versionCode = 2      // era 1
+versionName = "1.1.0"
+```
+
 ## Android — aplicativo de pedidos (Play Store)
 
 **App nativo (Kotlin + Jetpack Compose)** para os clientes pedirem pelo celular, conectado ao **mesmo servidor da lanchonete** e usando a **mesma IA** do WhatsApp.

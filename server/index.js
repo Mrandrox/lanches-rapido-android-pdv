@@ -1,6 +1,7 @@
 'use strict';
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -845,11 +846,19 @@ function handler(req, res) {
   return serveStatic(req, res, pathname);
 }
 
-server = http.createServer(handler);
+// TLS opcional: informe TLS_CERT e TLS_KEY (caminhos dos arquivos .pem) para
+// servir HTTPS — necessario quando o app e acessado de fora da rede local.
+const TLS_CERT = process.env.TLS_CERT || '';
+const TLS_KEY = process.env.TLS_KEY || '';
+const SCHEME = (TLS_CERT && TLS_KEY) ? 'https' : 'http';
+
+if (SCHEME === 'https') server = https.createServer({ cert: fs.readFileSync(TLS_CERT), key: fs.readFileSync(TLS_KEY) }, handler);
+else server = http.createServer(handler);
+
 server.listen(PORT, () => {
-  console.log(`[server] Lanches PDV rodando em http://localhost:${PORT}`);
-  console.log(`[server] Rastreio:   http://<ip>:${PORT}/track/<id>`);
-  console.log(`[server] Entregador: http://<ip>:${PORT}/courier`);
+  console.log(`[server] Lanches PDV rodando em ${SCHEME}://localhost:${PORT}`);
+  console.log(`[server] Rastreio:   ${SCHEME}://<ip>:${PORT}/track/<id>`);
+  console.log(`[server] Entregador: ${SCHEME}://<ip>:${PORT}/courier`);
   console.log(`[server] Banco:      ${db.dataPath()}`);
 });
 

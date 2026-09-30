@@ -16,7 +16,7 @@ object AppData {
     }
 
     fun saveBaseUrl(context: Context, url: String) {
-        val v = url.trim().trimEnd('/')
+        val v = Api.normalizeUrl(url)
         Api.baseUrl = v
         prefs(context).edit().putString("baseUrl", v).apply()
     }

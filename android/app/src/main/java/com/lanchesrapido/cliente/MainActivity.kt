@@ -3,6 +3,7 @@ package com.lanchesrapido.cliente
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +48,7 @@ private enum class Tab(val emoji: String, val label: String) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             LanchesTheme {
                 AppShell()
@@ -56,7 +62,10 @@ private fun AppShell() {
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        if (Api.baseUrl.isBlank()) Api.baseUrl = AppData.loadBaseUrl(context)
+        if (Api.baseUrl.isBlank()) {
+            val saved = AppData.loadBaseUrl(context)
+            Api.baseUrl = Api.normalizeUrl(saved)
+        }
     }
 
     var tab by remember { mutableStateOf(Tab.MENU) }
@@ -64,7 +73,7 @@ private fun AppShell() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
                 Tab.entries.forEach { t ->
                     val count = if (t == Tab.CART) Cart.count() else 0
                     NavigationBarItem(
@@ -83,7 +92,13 @@ private fun AppShell() {
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // statusBars: com targetSdk 35 o Android desenha sob a barra de status.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .windowInsetsPadding(WindowInsets.statusBars),
+        ) {
             when (tab) {
                 Tab.MENU -> MenuScreen()
                 Tab.AI -> AiScreen()

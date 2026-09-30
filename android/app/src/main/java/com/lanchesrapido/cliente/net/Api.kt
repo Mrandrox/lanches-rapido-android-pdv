@@ -18,6 +18,30 @@ object Api {
     @Volatile
     var baseUrl: String = ""
 
+    /**
+     * Aceita o que o cliente digitar: "192.168.0.10:4175", "loja.com.br",
+     * "http://10.0.0.5:4175/" ou "https://loja.com.br".
+     * Sem esquema, assume http (servidor local da loja). Sem porta, assume 4175.
+     */
+    fun normalizeUrl(input: String): String {
+        var v = input.trim().replace(Regex("^/+|/+$"), "")
+        if (v.isEmpty()) return ""
+        if (!v.startsWith("http://", true) && !v.startsWith("https://", true)) v = "http://$v"
+
+        val scheme = v.substringBefore("://")
+        val rest = v.substringAfter("://").trimEnd('/')
+        val host = rest.substringBefore('/')
+        val path = rest.substringAfter('/', "")
+
+        // host sem porta explicita e sem ":" (IPv6 tem many colons, mas usamos simples)
+        val hasPort = Regex(":\\d+$").containsMatchIn(host)
+        val looksLikeLocal = host.startsWith("192.168.") || host.startsWith("10.") ||
+            host.matches(Regex("172\\.(1[6-9]|2\\d|3[01])\\..*")) || host == "localhost"
+        val portPart = if (!hasPort && looksLikeLocal) ":4175" else ""
+
+        return "$scheme://$host$portPart" + if (path.isNotEmpty()) "/$path" else ""
+    }
+
     private fun url(path: String) = baseUrl.trimEnd('/') + "/" + path.trimStart('/')
 
     private fun String.toJson(): JSONObject = JSONObject(this)
@@ -25,10 +49,14 @@ object Api {
     private suspend fun request(path: String, method: String, body: JSONObject?): JSONObject =
         withContext(Dispatchers.IO) {
             if (baseUrl.isBlank()) throw ApiException("Configure o endereço do servidor da loja em Servidor.")
-            val conn = URL(url(path)).openConnection() as HttpURLConnection
+            val conn = try {
+                URL(url(path)).openConnection() as HttpURLConnection
+            } catch (e: Exception) {
+                throw ApiException("Endereço inválido: $baseUrl")
+            }
             try {
-                conn.connectTimeout = 5000
-                conn.readTimeout = 7000
+                conn.connectTimeout = 8000
+                conn.readTimeout = 12000
                 conn.requestMethod = method
                 conn.setRequestProperty("Accept", "application/json")
                 if (body != null) {
