@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const db = require('./db');
 const printer = require('./print');
 const ws = require('./ws');
+const mobile = require('./mobile');
 
 db.load();
 
@@ -85,15 +86,17 @@ function broadcast() {
 db.onChange(broadcast);
 
 const ORDERS_ACTIONS = {
-  start(o) { if (!o.startedAt) o.startedAt = new Date().toISOString(); o.alerted = false; o.preAlerted = false; },
+  start(o) { if (!o.startedAt) o.startedAt = new Date().toISOString(); o.mobileStatus = 'preparing'; o.alerted = false; o.preAlerted = false; },
   pause(o) {
     if (o.startedAt) { o.accumMs = (o.accumMs || 0) + (Date.now() - new Date(o.startedAt).getTime()); o.startedAt = null; }
+    o.mobileStatus = 'paused';
   },
-  resume(o) { if (!o.startedAt && !o.doneAt) o.startedAt = new Date().toISOString(); },
-  reset(o) { o.startedAt = null; o.accumMs = 0; o.alerted = false; o.preAlerted = false; },
+  resume(o) { if (!o.startedAt && !o.doneAt) o.startedAt = new Date().toISOString(); o.mobileStatus = o.doneAt ? 'done' : 'preparing'; },
+  reset(o) { o.startedAt = null; o.accumMs = 0; o.mobileStatus = o.doneAt ? 'done' : 'open'; o.alerted = false; o.preAlerted = false; },
   done(o) {
     if (o.startedAt) { o.accumMs = (o.accumMs || 0) + (Date.now() - new Date(o.startedAt).getTime()); o.startedAt = null; }
     o.doneAt = o.doneAt ? null : new Date().toISOString();
+    o.mobileStatus = o.doneAt ? 'done' : 'open';
   },
   limit(o, v) { o.limitMin = Math.max(1, Math.round(Number(v) || 20)); },
   printed(o) { o.printedAt = new Date().toISOString(); o.printCount = (o.printCount || 0) + 1; },
@@ -135,6 +138,36 @@ async function route(req, res, url) {
   if (p === '/api/state' && req.method === 'GET') {
     if (!authorized(req, url)) return sendJson(res, 401, { ok: false, error: 'Não autorizado' });
     return sendJson(res, 200, state());
+  }
+
+  if (p === '/api/mobile/sync' && req.method === 'POST') {
+    if (!authorized(req, url)) return sendJson(res, 401, { ok: false, error: 'Não autorizado' });
+    const body = await bodyOf(req);
+    try {
+      return sendJson(res, 200, Object.assign({ ok: true }, mobile.sync(body)));
+    } catch (e) {
+      return sendJson(res, 400, { ok: false, error: e.message || 'Não foi possível sincronizar.' });
+    }
+  }
+
+  if (p === '/api/mobile/print' && req.method === 'POST') {
+    if (!authorized(req, url)) return sendJson(res, 401, { ok: false, error: 'Não autorizado' });
+    const body = await bodyOf(req);
+    const configuration = db.get().settings.printer || {};
+    const ip = String(configuration.ip || '').trim();
+    if (!ip) return sendJson(res, 400, { ok: false, error: 'Configure o IP da impressora em Ajustes no computador.' });
+    if (configuration.mode === 'bluetooth' || configuration.mode === 'sistema') {
+      return sendJson(res, 400, { ok: false, error: 'O servidor só consegue imprimir em uma impressora de rede. Escolha IP na rede em Ajustes.' });
+    }
+    const copies = Math.max(1, Math.min(5, parseInt(body.copies, 10) || 1));
+    try {
+      const job = { ip, port: parseInt(configuration.port, 10) || 9100, proto: configuration.proto, data: body.data };
+      let result;
+      for (let i = 0; i < copies; i++) result = await printer.sendJob(job);
+      return sendJson(res, 200, Object.assign({ ok: true, copies }, result));
+    } catch (e) {
+      return sendJson(res, 502, { ok: false, error: e.message || 'Falha ao imprimir.' });
+    }
   }
 
   if (p === '/api/orders' && req.method === 'POST') {
