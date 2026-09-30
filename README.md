@@ -81,7 +81,7 @@ npm run dist:win
 
 ## Android — PDV local e offline
 
-O app nativo para Android instala em dispositivos com **Android 8.0 ou superior**. Ele funciona sem internet ou servidor: comandas, produtos, sessões de caixa, sangrias e suprimentos ficam em um banco SQLite privado no aparelho.
+O app nativo do **PDV** instala em dispositivos com **Android 8.0 ou superior**. Ele funciona sem internet ou servidor: comandas, produtos, sessões de caixa, sangrias e suprimentos ficam em um banco SQLite privado no aparelho.
 
 ```bash
 npm run android:apk       # gera APK release
@@ -95,6 +95,24 @@ O APK gerado fica em `android/app/build/outputs/apk/release/app-release.apk`. Pa
 O app inclui um cardápio local inicial que pode ser complementado com produtos no PDV. Abra o caixa, registre comandas e atualize o preparo; o saldo esperado é calculado pelas vendas concluídas, suprimentos e sangrias da sessão. As sessões fechadas permanecem no histórico. Na **Lixeira**, cada comanda pode ser restaurada; a exclusão permanente pede confirmação e é bloqueada para comandas concluídas que compõem o fechamento.
 
 O banco fica no armazenamento privado do app, não é enviado à nuvem e o app não solicita permissões de rede ou acesso geral a arquivos. As atualizações preservam os dados; **desinstalar o aplicativo apaga o banco local**. O app ainda não tem exportação: registre por outro meio o que precisar manter antes de desinstalar. O caixa Android é local ao aparelho e não sincroniza com o PDV desktop.
+
+### Bloco de Pedidos — app Android separado
+
+O **Bloco de Pedidos** também tem um app nativo independente, sem substituir nem alterar o PDV. Pedidos, cronômetros, lembretes e ajustes são gravados em outro banco SQLite privado, no próprio aparelho. O app funciona offline e não sincroniza com o computador. O cronômetro mostra o prazo e o atraso enquanto o app está aberto; esta versão não envia alertas em segundo plano.
+
+```bash
+npm run android:bloco-apk
+```
+
+O APK instalável é gerado em `android/bloco/build/outputs/apk/release/bloco-release.apk`. Transfira-o para o Android (8.0 ou superior), abra o arquivo e autorize a instalação pela fonte usada, se solicitado. Para atualizar, instale a nova versão sem desinstalar a anterior. A lixeira permite restaurar pedidos arquivados ou apagar definitivamente apenas o histórico escolhido; esvaziá-la mantém os pedidos ativos, os lembretes e os ajustes. Os lembretes concluídos podem ser limpos separadamente. Compartilhar um pedido usa o menu de compartilhamento do Android (incluindo WhatsApp, quando instalado). Impressão, sincronização com o servidor do computador e importação automática de mensagens do WhatsApp não fazem parte desta versão nativa.
+
+**Sincronização manual:** abra `pedidos/` no computador com `npm start` e conecte o celular à mesma rede Wi-Fi. Em Ajustes no app Android, informe o IP do computador e a porta `4191`, além do PIN do Bloco de Pedidos (padrão `1234`). Teste a conexão e use **Importar** ou **Exportar** quando desejar. Importar adiciona/atualiza registros correspondentes sem apagar os demais dados locais; exportar envia pedidos ativos e lembretes. Para um registro correspondente, prevalece a cópia da última transferência manual. Pedidos que estão na Lixeira não são exportados e a exclusão de um registro não é propagada. Esta versão não sincroniza automaticamente.
+
+**Impressão:** configure a impressora de rede no Bloco de Pedidos do computador, em Ajustes, com IP e protocolo TCP 9100 (ou HTTP se a impressora exigir). No celular, teste a conexão e toque em **Imprimir** no pedido, **Imprimir bloco** nos lembretes ou **Imprimir teste** nos Ajustes. O servidor encaminha os cupons ESC/POS para essa impressora. Celular e computador precisam estar ligados à rede; o servidor precisa continuar aberto. Bluetooth direto no Android ainda não é suportado.
+
+A conexão HTTP sem criptografia serve apenas para uma rede Wi-Fi confiável; para acesso remoto use HTTPS. O PIN e o token de acesso protegem as rotas, mas não substituem TLS fora da rede local.
+
+O Gradle Wrapper incluído exige JDK 17 e Android SDK para compilar. O APK é assinado com a chave de depuração do Gradle para instalação direta; para publicar na Play Store ou atualizar uma instalação assinada com outra chave, configure uma chave de produção.
 
 ## Instalação e uso rápido (desenvolvedor)
 
