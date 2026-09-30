@@ -5,9 +5,11 @@ browser/
 .DS_Store
 Thumbs.db
 .gradle/
+.kotlin/
 # build/ da raiz é fonte (ícones do electron-builder) e PRECISA ser versionado.
 # Só a saída do Gradle é ignorada:
 /android/app/build/
+/android/bloco/build/
 /android/build/
 local.properties
 keystore.properties
