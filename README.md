@@ -79,111 +79,22 @@ npm run dist:win
 ```
 </details>
 
-## Android — instalar em qualquer celular
+## Android — PDV local e offline
 
-O APK é **universal**: 1,3 MB, `minSdk 26` (Android 8.0 ou superior), sem bibliotecas nativas pesadas, apenas as permissões `INTERNET` e `ACCESS_NETWORK_STATE`. Instala em qualquer Android 8+ (arm64, armeabi-v7a, x86, x86_64).
-
-```bash
-npm run android:apk       # gera o APK release assinado
-npm run android:bundle    # gera o AAB para a Play Store
-```
-
-Depois de compilar, os artefatos ficam em:
-
-- `android/app/build/outputs/apk/release/app-release.apk`
-- `android/app/build/outputs/bundle/release/app-release.aab`
-
-> **Antes de compilar**, o JDK e o Android SDK precisam estar no `PATH` (eles não vêm por padrão aqui):
->
-> ```bash
-> export JAVA_HOME=/home/mosh/tools/jdk17
-> export ANDROID_HOME=/home/mosh/tools/android-sdk
-> export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
-> ```
-
-### Instalar direto no celular (sem Play Store)
-
-1. Copie `dist/android/Lanches-Rapido-app-release-1.0.0.apk` para o celular (cabo, WhatsApp, Google Drive, pendrive OTG).
-2. Abra o arquivo no celular.
-3. O Android vai avisar que o app veio de "fonte desconhecida" — permita **uma vez** nas configurações que aparecer.
-4. Toque em **Instalar**.
-
-> A assinatura é a mesma em todas as versões (`SHA-256 314b5e82…dec`). Isso é o que permite **atualizar por cima** sem desinstalar: basta instalar o APK novo, o app e o endereço salvo são preservados. Se a assinatura mudar, o Android recusa a atualização e exige desinstalar.
-
-### Endereço do servidor (o app funciona em qualquer rede)
-
-Na aba **Servidor** do app, cole o endereço da loja. O app aceita o que for digitado e normaliza sozinho:
-
-| O usuário digita | O app conecta em |
-|---|---|
-| `192.168.0.10:4175` | `http://192.168.0.10:4175` |
-| `192.168.0.10` | `http://192.168.0.10:4175` (porta preenchida) |
-| `loja.com.br` | `http://loja.com.br` |
-| `https://pedidos.loja.com.br` | `https://pedidos.loja.com.br` (mantém caminho e https) |
-
-IPs privados (`192.168.*`, `10.*`, `172.16-31.*`) e `localhost` recebem a porta `4175` automaticamente. Domínios externos assumem as portas padrão do HTTPS.
-
-### Usar fora da rede local (internet)
-
-O servidor escuta em todas as interfaces, então qualquer celular na mesma rede já funciona. Para o app funcionar **fora da LAN** são necessárias duas coisas: um endereço público e **HTTPS** (o Android bloqueia HTTP em destinos externos, e a Play Store exige).
-
-**Opção A — o servidor com HTTPS direto.** Gere um certificado (Let's Encrypt ou o do seu provedor) e inicie com:
+O app nativo para Android instala em dispositivos com **Android 8.0 ou superior**. Ele funciona sem internet ou servidor: comandas, produtos, sessões de caixa, sangrias e suprimentos ficam em um banco SQLite privado no aparelho.
 
 ```bash
-TLS_CERT=/caminho/cert.pem TLS_KEY=/caminho/key.pem npm run server
+npm run android:apk       # gera APK release
+npm run android:bundle    # gera AAB para publicação
 ```
 
-O servidor passa a responder em `https://` com o mesmo código, sem nenhuma configuração extra no app.
+Para compilar, instale JDK 17 e Android SDK; os scripts usam o Gradle Wrapper incluído no projeto.
 
-**Opção B — proxy reverso.** Coloque o servidor atrás de Nginx/Caddy/Traefik e termine o TLS lá. O processo Node continua em `http://127.0.0.1:4175`.
+O APK gerado fica em `android/app/build/outputs/apk/release/app-release.apk`. Para instalar sem Play Store, transfira esse arquivo para o Android, abra-o e confirme a instalação. Se o Android solicitar, permita a instalação pela fonte usada. O `versionCode` deve ser incrementado a cada atualização.
 
-Depois, o cliente digita `https://seu-dominio.com.br` na aba **Servidor**.
+O app inclui um cardápio local inicial que pode ser complementado com produtos no PDV. Abra o caixa, registre comandas e atualize o preparo; o saldo esperado é calculado pelas vendas concluídas, suprimentos e sangrias da sessão. As sessões fechadas permanecem no histórico. Na **Lixeira**, cada comanda pode ser restaurada; a exclusão permanente pede confirmação e é bloqueada para comandas concluídas que compõem o fechamento.
 
-### Atualizar o app depois
-
-Recompile e reinstale por cima — os dados ficam. **Regra do Android:** `versionCode` precisa aumentar a cada publicação. Para subir a versão, edite `android/app/build.gradle.kts`:
-
-```kotlin
-versionCode = 2      // era 1
-versionName = "1.1.0"
-```
-
-## Android — aplicativo de pedidos (Play Store)
-
-**App nativo (Kotlin + Jetpack Compose)** para os clientes pedirem pelo celular, conectado ao **mesmo servidor da lanchonete** e usando a **mesma IA** do WhatsApp.
-
-Artefatos já prontos em `dist/android/`:
-
-| Arquivo | Uso |
-|---|---|
-| `Lanches-Rapido-app-release-1.0.0.aab` | **Enviar para a Play Store** (signed App Bundle) |
-| `Lanches-Rapido-app-release-1.0.0.apk` | Instalar direto no celular (signed, sem Play) |
-| `Lanches-Rapido-app-debug.apk` | Versão de desenvolvimento (instalar com adb) |
-
-**Como funciona:**
-
-1. A loja liga o PDV (servidor na porta **4175**). Na aba **Configurações → Aplicativo de pedidos**, ative "Cliente pode pedir pelo app" e veja o endereço `http://<IP-da-loja>:4175`.
-2. O cliente instala o app, abre a aba **Servidor** e digita esse endereço (ex.: `http://192.168.0.10:4175`).
-3. O app carrega o cardápio, o cliente monta o carrinho (ou digita "2 x-salada e 1 batata" na aba **IA** — mesmos endpoints e mesma IA do servidor) e finaliza.
-4. O pedido entra no PDV em tempo real, imprime o atendimento para a cozinha e ganha código de rastreio na aba **Pedido** (status e entregador).
-
-**Permissões (Play Store):** apenas `INTERNET` e `ACCESS_NETWORK_STATE` (o app não pede nada além do necessário).
-
-**Publicação na Play Store (resumo):**
-
-1. `npm run android:bundle` gera o `.aab` assinado.
-2. No Google Play Console → **Criar app** (nome: *Lanches Rápido*; idioma: português; tipo: App; grátis) → **Produção** → **Enviar release**, com o `.aab` de `dist/android/`.
-3. **Play App Signing**: de preferência **ative** e deixe o Google cuidar da assinatura; guarde a chave de upload em local seguro.
-4. **Declarações/Formulários** → **Política de Privacidade**: precisa de uma URL com página descrevendo os dados coletados (nome, telefone e endereço do pedido, usados só para preparar e entregar). Hospede em qualquer página (ex.: site/GitHub Pages).
-5. Ficha: ícone (o app já tem ícone adaptável), screenshots de cada tela, resumo/frases curtas em português, categoria **Comida e bebida**.
-6. **Teste**: antes de publicar, envie o `.aab` para um teste interno/fechado com o email de alguns usuários.
-7. O conteúdo do app usa **HTTP** na sua rede — para internet/fora da LAN, use um túnel (ex.: Tailscale) ou sirva o servidor com HTTPS reverso.
-
-**Keystore (IMPORTANTE — guarde com segurança):**
-
-- Caminho: `/home/mosh/tools/lanchesrapido-release.keystore`
-- Senha/alias: `lanchesrapido2026` (config em `android/keystore.properties`, fora do git)
-- Perder o keystore com **Play App Signing** desativado impede atualizar o app na Play Store. Mantenha a chave de upload e as senhas fora do repositório.
+O banco fica no armazenamento privado do app, não é enviado à nuvem e o app não solicita permissões de rede ou acesso geral a arquivos. As atualizações preservam os dados; **desinstalar o aplicativo apaga o banco local**. O app ainda não tem exportação: registre por outro meio o que precisar manter antes de desinstalar. O caixa Android é local ao aparelho e não sincroniza com o PDV desktop.
 
 ## Instalação e uso rápido (desenvolvedor)
 
@@ -233,8 +144,10 @@ Em **Caixa**: abra o caixa com o valor inicial, acompanhe vendas por forma de pa
 
 - Banco único: `%APPDATA%/Lanches Rápido/data.json` (Windows), `~/.config/lanches-caixa/data.json` (Linux).
 - Para zerar, limpe esse arquivo (ou reconfigure `DB_PATH`).
+- No app Android, o banco SQLite e o fluxo de caixa são locais ao aparelho e independentes dos dados do desktop.
 
 ## Segurança
 
 - Uso em LAN/uso de confiança: os PINs dão acesso ao caixa. O pedido público de rastreio só expõe os dados do próprio pedido.
 - Configure PINs para **todos** os usuários e não deixe o serviço exposto na internet.
+- No Android, o banco fica no armazenamento privado, backups do Android estão desativados e não há permissões de rede/arquivos. Proteja o aparelho com bloqueio de tela; apagar os dados ou desinstalar o app remove o banco local.
