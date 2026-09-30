@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#101317">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bloco de Pedidos">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="icon" href="/icon.svg">
+  <title>Bloco de Pedidos</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <div class="lock" id="lock">
+    <div class="lock-card">
+      <div class="lock-logo">📋</div>
+      <h1>Bloco de Pedidos</h1>
+      <p>Digite o PIN do caixa</p>
+      <input id="pin" type="tel" inputmode="numeric" placeholder="••••" maxlength="8" autocomplete="off">
+      <button class="btn primary big" id="doLogin">Entrar</button>
+      <div class="lock-err" id="lockErr"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app" hidden>
+    <header class="top">
+      <div class="top-brand">
+        <span class="top-logo">📋</span>
+        <div>
+          <b id="storeName">Bloco de Pedidos</b>
+          <small id="topCount">0 pedidos</small>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="btnSound" title="Som do alerta">🔔</button>
+        <button class="icon-btn" id="btnSettings" title="Ajustes">⚙️</button>
+      </div>
+    </header>
+
+    <div class="latebar" id="latebar" hidden>
+      <span id="lateText">⚠️ Nenhum atraso</span>
+      <button class="btn tiny" id="lateJump">Ver</button>
+    </div>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="pedidos"><span>🧾</span>Pedidos<em class="dot" id="tabBadge" hidden></em></button>
+      <button class="tab" data-view="novo"><span>＋</span>Novo</button>
+      <button class="tab" data-view="bloco"><span>🗒️</span>Bloco<em class="dot" id="tabNotes"></em></button>
+      <button class="tab" data-view="ajustes"><span>⚙️</span>Ajustes</button>
+    </nav>
+
+    <main>
+      <!-- PEDIDOS -->
+      <section class="view" id="view-pedidos">
+        <div class="filters" id="filters">
+          <button class="chip active" data-f="ativos">Em andamento</button>
+          <button class="chip" data-f="atrasados">Atrasados</button>
+          <button class="chip" data-f="espera">Na espera</button>
+          <button class="chip" data-f="finalizados">Finalizados</button>
+        </div>
+        <div class="list" id="orders"></div>
+      </section>
+
+      <!-- NOVO PEDIDO -->
+      <section class="view" id="view-novo" hidden>
+        <div class="sheet" id="orderSheet">
+          <div class="wa-paste">
+            <label for="waText">📲 Colar mensagem do WhatsApp</label>
+            <textarea id="waText" rows="3" placeholder="Cole aqui a mensagem do cliente:&#10;2x burger, 1 Coca gelada&#10;Rua das Flores, 120&#10;11 98888-7777"></textarea>
+            <div class="row">
+              <button class="btn small" id="btnImport">Importar do WhatsApp</button>
+              <button class="btn small ghost" id="btnClearPaste">Limpar</button>
+            </div>
+          </div>
+
+          <h2 id="formTitle">Novo pedido</h2>
+          <input type="hidden" id="formId">
+
+          <div class="seg" id="segType">
+            <button class="active" data-t="retirada">🥡 Retirada</button>
+            <button data-t="entrega">🛵 Entrega</button>
+          </div>
+
+          <div class="grid2">
+            <label>Cliente<input id="fName" placeholder="Nome do cliente" autocomplete="off"></label>
+            <label>Telefone<input id="fPhone" placeholder="11 90000-0000" inputmode="tel" autocomplete="off"></label>
+          </div>
+          <label id="addrWrap" hidden>Endereço de entrega<textarea id="fAddress" rows="2" placeholder="Rua, número, complemento, bairro"></textarea></label>
+
+          <div class="items-head">
+            <h3>Itens do pedido</h3>
+            <div class="recent" id="recentItems"></div>
+          </div>
+          <div class="items" id="items"></div>
+          <button class="btn small ghost" id="btnAddItem">＋ Adicionar item</button>
+
+          <label>Observação<textarea id="fNote" rows="2" placeholder="Ex.: sem cebola, caprichar no gelo..."></textarea></label>
+
+          <div class="grid2">
+            <label>Pagamento
+              <select id="fPayment">
+                <option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Cartão na entrega</option><option>Outro</option>
+              </select>
+            </label>
+            <label class="limit-field">⏱ Prazo (minutos)
+              <input id="fLimit" type="number" inputmode="numeric" min="1" max="600" value="20">
+            </label>
+          </div>
+          <div class="quick-limits">
+            <button data-m="10">10 min</button><button data-m="15">15</button><button data-m="20">20</button>
+            <button data-m="30">30</button><button data-m="45">45</button><button data-m="60">60</button>
+          </div>
+          <p class="hint">O prazo é só para <b>avisar o atendente</b> de atraso — não sai na impressão.</p>
+
+          <div class="total-line">Total <b id="fTotal">R$ 0,00</b></div>
+
+          <div class="form-actions">
+            <button class="btn ghost" id="btnCancelEdit" hidden>Cancelar</button>
+            <button class="btn" id="btnSave">Salvar</button>
+            <button class="btn primary" id="btnSavePrint">Salvar e imprimir 🖨️</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOCO DE NOTAS -->
+      <section class="view" id="view-bloco" hidden>
+        <div class="note-add">
+          <input id="noteText" placeholder="Escreva um lembrete…" maxlength="200">
+          <div class="note-colors" id="noteColors">
+            <button class="sw amarelo active" data-c="amarelo"></button>
+            <button class="sw verde" data-c="verde"></button>
+            <button class="sw azul" data-c="azul"></button>
+            <button class="sw rosa" data-c="rosa"></button>
+            <button class="sw cinza" data-c="cinza"></button>
+          </div>
+          <button class="btn primary" id="btnAddNote">Fixar</button>
+        </div>
+        <div class="notes" id="notes"></div>
+        <div class="row end">
+          <button class="btn small ghost" id="btnPrintNotes">🖨️ Imprimir o bloco</button>
+        </div>
+      </section>
+
+      <!-- AJUSTES -->
+      <section class="view" id="view-ajustes" hidden>
+        <div class="card">
+          <h3>Loja (aparece no cupom)</h3>
+          <label>Nome<input id="sName" placeholder="Minha Lanchonete"></label>
+          <div class="grid2">
+            <label>Telefone<input id="sPhone" placeholder="(11) 3000-0000" inputmode="tel"></label>
+            <label>Endereço<input id="sAddress" placeholder="Rua X, 100"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Cronômetro de atraso</h3>
+          <label>Prazo padrão (minutos)<input id="sLimit" type="number" min="1" max="600" inputmode="numeric"></label>
+          <label class="check"><input type="checkbox" id="sPreAlert"> Avisar 2 minutos antes do prazo</label>
+          <label class="check"><input type="checkbox" id="sSound"> Tocar som quando atrasar</label>
+          <label class="check"><input type="checkbox" id="sVibrate"> Vibrar o celular quando atrasar</label>
+          <label>Texto da confirmação no WhatsApp
+            <textarea id="sWa" rows="3"></textarea>
+          </label>
+          <p class="hint">Use <code>{code}</code> (nº do pedido), <code>{time}</code> (prazo) e <code>{total}</code>.</p>
+          <div class="row">
+            <button class="btn" id="btnNotify">Ativar aviso de notificação</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Impressora térmica 58mm</h3>
+          <label>Como imprimir
+            <select id="pMode">
+              <option value="auto">Automático (usa o que estiver conectado)</option>
+              <option value="bluetooth">Bluetooth (Android)</option>
+              <option value="rede">IP na rede (qualquer aparelho)</option>
+              <option value="sistema">Tela de impressão do celular (iPhone)</option>
+            </select>
+          </label>
+          <div class="grid2" id="netBox">
+            <label>IP da impressora<input id="pIp" placeholder="192.168.0.50" inputmode="decimal"></label>
+            <label>Porta<input id="pPort" inputmode="numeric" placeholder="9100"></label>
+          </div>
+          <label>Protocolo
+            <select id="pProto">
+              <option value="tcp">TCP 9100 (padrão de fábrica)</option>
+              <option value="http">HTTP (algumas impressoras Wi-Fi)</option>
+            </select>
+          </label>
+          <div class="grid2">
+            <label>Colunas (32 = 58mm)<input id="pWidth" inputmode="numeric"></label>
+            <label>Cópias<input id="pCopies" inputmode="numeric" min="1" max="5"></label>
+          </div>
+          <label class="check"><input type="checkbox" id="pCut"> Cortar o papel no final</label>
+          <label class="check"><input type="checkbox" id="pDrawer"> Abrir gaveta (se tiver)</label>
+          <label class="check"><input type="checkbox" id="pAscii"> Tirar acentos (impressora sem acento)</label>
+          <div class="row wrap">
+            <button class="btn" id="btnBt">Conectar Bluetooth</button>
+            <button class="btn" id="btnTest">🖨️ Imprimir teste</button>
+          </div>
+          <p class="hint" id="printerStatus">Impressora: ainda não configurada.</p>
+        </div>
+
+        <div class="card">
+          <h3>Segurança e app</h3>
+          <label>PIN de entrada<input id="sPin" inputmode="numeric" maxlength="8"></label>
+          <div class="row wrap">
+            <button class="btn" id="btnSaveSettings">Salvar ajustes</button>
+            <button class="btn ghost" id="btnInstall">📲 Instalar no celular</button>
+            <button class="btn ghost" id="btnLogout">Sair</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="alertModal" hidden>
+    <div class="modal-card alert">
+      <div class="alert-ico">⏰</div>
+      <h2 id="alertTitle">Pedido atrasado!</h2>
+      <p id="alertText"></p>
+      <div class="row">
+        <button class="btn ghost" id="alertClose">Fechar</button>
+        <button class="btn primary" id="alertGo">Ver pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="sheetModal" hidden>
+    <div class="modal-card" id="sheetBody"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

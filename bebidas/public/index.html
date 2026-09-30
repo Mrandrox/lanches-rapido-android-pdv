@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bebidas IA</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-logo" id="logo">BI</div>
+      <div>
+        <h1 id="storeName">Bebidas IA</h1>
+        <small id="storeTag">Atendente IA de bebidas</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="btnIA">
+        Atender IA
+        <span class="badge-count" id="aiCount" style="display:none">+1</span>
+      </button>
+      <button class="btn primary" id="btnCart">
+        Carrinho
+        <span class="badge-count" id="cartCount">0</span>
+      </button>
+    </div>
+  </div>
+
+  <section class="hero">
+    <h2 id="heroTitle">Todas as bebidas, na hora</h2>
+    <p id="heroText">Monte seu pedido no cardápio ou converse com o atendente IA e peça do seu jeito.</p>
+    <div class="ann" id="ann" style="display:none"></div>
+  </section>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main class="grid" id="grid">
+    <div class="spinner"></div>
+  </main>
+
+  <button class="chat-fab" id="fabIA" title="Conversar com a IA" aria-label="Atendente IA">
+    <span class="dot"></span>
+    IA
+  </button>
+
+  <!-- Cart drawer -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="cartDrawer">
+    <header>
+      <h3>Carrinho</h3>
+      <button class="btn small" id="closeCart">Fechar x</button>
+    </header>
+    <div class="body" id="cartBody"></div>
+    <footer id="cartFooter" style="display:none"></footer>
+  </aside>
+
+  <!-- IA chat -->
+  <div class="chat closed" id="chat">
+    <header>
+      <div class="avatar">IA</div>
+      <div>
+        <b>Atendente IA</b>
+        <small>online · respondo na hora</small>
+      </div>
+      <button class="btn small" id="closeChat" style="margin-left:auto">x</button>
+    </header>
+    <div class="msgs" id="msgs"></div>
+    <div class="input-row">
+      <input id="chatInput" placeholder="Ex.: 2 Heineken gelada e 1 suco de laranja..." autocomplete="off">
+      <button id="sendMsg" title="Enviar">➤</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

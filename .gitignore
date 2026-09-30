@@ -1,0 +1,16 @@
+node_modules/
+dist/
+browser/
+*.log
+.DS_Store
+Thumbs.db
+.gradle/
+# build/ da raiz é fonte (ícones do electron-builder) e PRECISA ser versionado.
+# Só a saída do Gradle é ignorada:
+/android/app/build/
+/android/build/
+local.properties
+keystore.properties
+*.apk
+*.aab
+.cxx/

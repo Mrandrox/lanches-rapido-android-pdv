@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>Lanches · Delivery</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--text:#f1f5f9;--muted:#94a3b8;--line:#334155;--acc:#16a34a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.wrap{max-width:420px;width:100%;padding:20px;text-align:center}
+h1{font-size:22px;margin-bottom:6px}
+p{color:var(--muted);font-size:13px;margin-bottom:24px}
+a.btn{display:flex;align-items:center;gap:12px;width:100%;padding:16px;border-radius:14px;background:var(--card);color:var(--text);text-decoration:none;margin-bottom:10px;border:1px solid var(--line);text-align:left}
+a.btn em{font-size:24px;font-style:normal}
+a.btn strong{display:block;font-size:15px}
+a.btn span{color:var(--muted);font-size:12px}
+.v{color:var(--muted);font-size:11px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="font-size:44px">🍔🛵</div>
+  <h1 id="name">Delivery</h1>
+  <p>Acesse pelo celular do cliente ou pelo celular do entregador.</p>
+  <a class="btn" href="/courier"><em>🛵</em><div><strong>App do Entregador</strong><span>Receba pedidos, inicie a rota e compartilhe sua localização ao vivo</span></div></a>
+  <a class="btn"><em>📦</em><div><strong>Rastreio do cliente</strong><span>O link é gerado no PDV a cada pedido — formato: /track/&lt;id-do-pedido&gt;</span></div></a>
+  <p class="v">Este painel é o hub do delivery. O PDV desktop usa a mesma base de dados.</p>
+</div>
+<script>fetch('/api/health').then(r=>r.json()).then(d=>{ if(d.name){document.getElementById('name').textContent=d.name;} }).catch(()=>{});</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "bloco-pedidos",
+  "productName": "Bloco de Pedidos",
+  "version": "1.0.0",
+  "description": "Bloco de notas interativo para pedidos, com cronômetro de prazo, alerta de atraso e impressão térmica 58mm (Bluetooth, IP ou diálogo do sistema)",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "smoke": "SMOKE=1 node server/index.js"
+  },
+  "author": "",
+  "license": "MIT"
+}

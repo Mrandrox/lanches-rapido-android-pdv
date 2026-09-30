@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de pedidos</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .adm { max-width: 1000px; margin: 0 auto; padding: 20px 18px 80px; }
+    .login-box {
+      max-width: 360px; margin: 20vh auto;
+      background: var(--bg2); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 26px;
+    }
+    .login-box h2 { margin: 0 0 16px; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+    .stat b { font-size: 22px; display: block; }
+    .stat small { color: var(--muted); }
+
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 18px; }
+    .order {
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .order.status-novo { border-left-color: var(--info); }
+    .order.status-preparando { border-left-color: var(--accent); }
+    .order.status-pronto { border-left-color: var(--ok); }
+    .order.status-rota { border-left-color: #9b5cff; }
+    .order.status-entregue, .order.status-retirado { opacity: .72; border-left-color: var(--muted); }
+    .order.status-cancelado { border-left-color: var(--danger); opacity: .75; }
+
+    .o-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .o-head .number { font-size: 19px; font-weight: 800; }
+    .o-head .pill {
+      font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+      border-radius: 999px; padding: 4px 10px;
+      background: var(--bg3); border: 1px solid var(--line);
+    }
+    .o-head .time { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .o-body { display: grid; gap: 8px; color: var(--muted); font-size: 14px; margin-top: 10px; }
+    .o-items { background: var(--bg); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; }
+    .o-items .li { display: flex; justify-content: space-between; color: var(--text); }
+    .o-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .o-actions .btn { flex: 0 0 auto; }
+    .new-order {
+      background: rgba(77,163,255,.08);
+      border: 1px dashed var(--info);
+      animation: pulsebg 1.6s infinite;
+    }
+    @keyframes pulsebg { 50% { background: rgba(77,163,255,.16); } }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; color: #000; }
+      .o-body, .o-actions { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box" id="loginBox">
+    <h2>Painel de pedidos</h2>
+    <div class="field">
+      <label>PIN</label>
+      <input type="password" id="pin" placeholder="4 dígitos" inputmode="numeric">
+    </div>
+    <button class="btn primary" id="doLogin" style="width:100%;justify-content:center">Entrar</button>
+    <p class="muted" style="font-size:13px;margin-top:14px">PIN padrão: 1234</p>
+  </div>
+
+  <div class="adm" id="panel" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0">Pedidos <span id="storeName" class="muted" style="font-size:14px"></span></h2>
+        <small class="muted">Atualização em tempo real</small>
+      </div>
+      <button class="btn" id="logout">Sair</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="sNovos">0</b><small>Novos</small></div>
+      <div class="stat"><b id="sAtivos">0</b><small>Em andamento</small></div>
+      <div class="stat"><b id="sHoje">0</b><small>Pedidos hoje</small></div>
+      <div class="stat"><b id="sTotal">R$ 0</b><small>Faturado (concluídos)</small></div>
+    </div>
+
+    <div class="filter-row no-print">
+      <button class="btn small tab active" data-f="todos">Todos</button>
+      <button class="btn small tab" data-f="novos">Novos</button>
+      <button class="btn small tab" data-f="ativos">Ativos</button>
+      <button class="btn small tab" data-f="finalizados">Finalizados</button>
+    </div>
+
+    <div id="orders"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/adm.js"></script>
+</body>
+</html>

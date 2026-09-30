@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-dontwarn org.jetbrains.annotations.**
+-keep class kotlinx.coroutines.** { *; }

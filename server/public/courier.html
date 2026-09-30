@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Entregador · Delivery</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="window.__leafletMissing=true"></script>
+<style>
+:root{
+  --bg:#0f172a; --card:#1e293b; --card2:#273244; --text:#f1f5f9; --muted:#94a3b8;
+  --line:#334155; --acc:#16a34a; --acc-2:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+  --radius:14px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100vh}
+.wrap{max-width:520px; margin:0 auto; padding:16px}
+header{display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20}
+header .logo{width:38px; height:38px; border-radius:10px; object-fit:contain}
+header h1{font-size:15px; line-height:1.2}
+header .sub{font-size:11px; color:var(--muted)}
+header .user{margin-left:auto; text-align:right}
+header .user strong{font-size:13px; display:block}
+header .user button{margin-top:2px; font-size:11px; color:var(--muted); background:none; border:none; cursor:pointer; text-decoration:underline}
+.gps{
+  display:flex; align-items:center; gap:8px; padding:8px 12px; margin-bottom:12px;
+  border-radius:12px; font-size:12px; font-weight:700;
+}
+.gps.on{background:#052e16; color:#4ade80}
+.gps.off{background:#450a0a; color:#f87171}
+.gps .dot{width:8px; height:8px; border-radius:50%; background:currentColor; animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:12px}
+.row{display:flex; justify-content:space-between; align-items:center; gap:10px}
+h2{font-size:15px; margin-bottom:10px}
+.muted{color:var(--muted); font-size:12px}
+.badge{font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px}
+.badge.open{background:#78350f; color:#fbbf24}
+.badge.preparing{background:#1e3a8a; color:#93c5fd}
+.badge.route{background:#052e16; color:#4ade80}
+.item{display:flex; justify-content:space-between; gap:8px; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--line)}
+.btn{margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px; border:none; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer}
+.btn.green{background:var(--acc); color:#fff}
+.btn.blue{background:#2563eb; color:#fff}
+.btn.gray{background:var(--card2); color:var(--text)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5}
+.login{max-width:400px; margin:60px auto; padding:0 16px}
+.login .card{text-align:center; padding:28px}
+.login h2{margin:8px 0 4px}
+.login .pinrow{display:flex; justify-content:center; gap:8px; margin:14px 0}
+.login input.pin{width:48px; height:56px; text-align:center; font-size:22px; font-weight:800; border-radius:10px; border:2px solid var(--line); background:var(--bg); color:var(--text)}
+.login input.pin:focus{border-color:var(--acc); outline:none}
+.pinpad{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px}
+.pinpad button{height:54px; font-size:20px; font-weight:800; border-radius:12px; border:none; background:var(--card2); color:var(--text); cursor:pointer}
+.pinpad button.key{background:var(--card2)}
+.pinpad button:active{transform:scale(.97)}
+.step-card{border-left:4px solid var(--line)}
+.step-card.done{border-left-color:var(--acc)}
+.step-card.active{border-left-color:var(--warn)}
+.tot{display:flex; justify-content:space-between; font-weight:800; font-size:16px; margin-top:8px; padding-top:8px; border-top:2px solid var(--line)}
+#map{height:180px; border-radius:12px; margin-top:10px; display:none; z-index:1}
+.err{color:#f87171; font-size:13px; min-height:18px; margin-top:6px}
+.toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--acc-2); color:#052e16; font-weight:800; font-size:13px; padding:10px 18px; border-radius:999px; display:none; z-index:50; box-shadow:0 4px 20px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+
+<div class="login" id="loginView" style="display:none">
+  <div class="card">
+    <img id="loginLogo" style="width:64px; height:64px; object-fit:contain; border-radius:14px; display:none" alt="">
+    <h2 id="storeName">Delivery</h2>
+    <p class="muted">Área do entregador — entre com seu PIN</p>
+    <div class="pinrow" id="pinrow"></div>
+    <div class="pinpad" id="pinpad"></div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn blue" id="loginBtn">Entrar</button>
+  </div>
+</div>
+
+<div id="appView" style="display:none">
+  <header>
+    <img class="logo" id="logo" alt="" style="display:none">
+    <div>
+      <h1 id="hName">Delivery</h1>
+      <div class="sub" id="hSub">Sua central de entregas</div>
+    </div>
+    <div class="user">
+      <strong id="userName">—</strong>
+      <button id="logoutBtn">Trocar de conta</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="gps on" id="gpsBar" style="display:none"><span class="dot"></span><span id="gpsText">Compartilhando localização em tempo real</span></div>
+    <div class="gps off" id="gpsBarOff" style="display:none"><span class="dot"></span><span>Localização desligada — ligue o GPS para rastreio</span></div>
+    <h2 style="margin:6px 0 10px">Minhas entregas</h2>
+    <div id="orders"></div>
+    <p class="muted" id="emptyMsg" style="text-align:center;padding:30px 0">Nenhuma entrega atribuída. Aguarde a loja atribuir pedidos a você.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  let token = sessionStorage.getItem('cw_token') || '';
+  let user = null;
+  let store = null;
+  let orders = [];
+  let sse = null;
+  let watchId = null;
+  let map = null, courierMark = null;
+
+  function statusClass(s) { return s; }
+  const STAT = {
+    open:      { label: 'Novo', cls: 'open' },
+    preparing: { label: 'Preparando', cls: 'preparing' },
+    route:     { label: 'Em rota', cls: 'route' },
+  };
+  function fmt(v) { return (store ? store.currency : 'R$') + ' ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
+
+  async function api(path, opts = {}) {
+    const res = await fetch('/api' + path, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erro');
+    return data;
+  }
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2600);
+  }
+
+  // ------------------ login
+  function buildPinpad() {
+    const row = $('pinrow');
+    row.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const inp = document.createElement('input');
+      inp.className = 'pin'; inp.maxLength = 1; inp.inputMode = 'numeric';
+      inp.onkeydown = (e) => {
+        if (/[0-9]/.test(e.key)) {
+          inp.value = e.key;
+          const next = row.children[i + 1];
+          if (next) next.focus(); else doLogin();
+        }
+        if (e.key === 'Backspace') { inp.value = ''; const prev = row.children[i - 1]; if (prev) prev.focus(); }
+        e.preventDefault();
+      };
+      row.appendChild(inp);
+    }
+    const pad = $('pinpad');
+    pad.innerHTML = '';
+    const keys = ['1','2','3','4','5','6','7','8','9','limpar','0','ok'];
+    keys.forEach(k => {
+      const b = document.createElement('button');
+      b.textContent = k === 'limpar' ? '⌫' : k === 'ok' ? '✓' : k;
+      b.className = k === 'limpar' || k === 'ok' ? '' : 'key';
+      b.dataset.key = k;
+      b.onclick = () => {
+        if (k === 'ok') return doLogin();
+        if (k === 'limpar') { for (const i of inputs()) i.value = ''; inputs()[0].focus(); return; }
+        for (const i of inputs()) { if (!i.value) { i.value = k; if ($('loginErr')) $('loginErr').textContent = ''; break; } }
+        if (Array.from(inputs()).every(i => i.value)) doLogin();
+      };
+      pad.appendChild(b);
+    });
+  }
+  function inputs() { return Array.from(document.querySelectorAll('#loginView .pin')); }
+  async function doLogin() {
+    const pin = inputs().map(i => i.value).join('');
+    const ok = pin.trim();
+    if (!ok || pin.length < 4) return;
+    try {
+      const data = await api('/login', { method: 'POST', body: JSON.stringify({ pin }) });
+      token = data.token;
+      sessionStorage.setItem('cw_token', token);
+      user = data.user;
+      showUser();
+      await loadData();
+    } catch (e) { $('loginErr').textContent = 'PIN inválido.'; }
+  }
+
+  // ------------------ app
+  function showUser() {
+    $('loginView').style.display = 'none';
+    $('appView').style.display = '';
+    $('userName').textContent = user.name;
+    buildPinpad();
+  }
+  function applyBrand(s) {
+    document.title = s.name + ' · Entregador';
+    $('hName').textContent = s.name;
+    $('storeName').textContent = s.name;
+    document.documentElement.dataset.theme = s.theme === 'light' ? 'light' : 'dark';
+    const logo = $('logo'), loginLogo = $('loginLogo');
+    if (s.logo) { logo.src = s.logo; logo.style.display = ''; loginLogo.src = s.logo; loginLogo.style.display = ''; }
+    else { logo.style.display = 'none'; loginLogo.style.display = 'none'; }
+  }
+  async function loadData() {
+    const data = await api('/bootstrap');
+    store = data.settings;
+    orders = data.orders || [];
+    applyBrand(store);
+    render();
+    connectSSE();
+    $('hSub').textContent = `${orders.filter(o => o.status === 'route').length} em rota · ${orders.length} entregas`;
+  }
+  function render() {
+    const wrap = $('orders');
+    wrap.innerHTML = '';
+    if (!orders.length) { $('emptyMsg').style.display = ''; return; }
+    $('emptyMsg').style.display = 'none';
+    orders.slice().sort((a, b) => (a.status === 'route' ? -1 : 1) - (b.status === 'route' ? -1 : 1)).forEach(o => {
+      const st = STAT[o.status] || STAT.open;
+      const card = document.createElement('div');
+      card.className = `card step-card ${o.status === 'route' ? 'active' : (o.status === 'delivered' ? 'done' : 'active')}`;
+      card.innerHTML = `
+        <div class="row">
+          <strong>Pedido #${o.number}</strong>
+          <span class="badge ${st.cls}">${st.label}</span>
+        </div>
+        <div class="muted" style="margin:4px 0">${escapeHtml(o.customer || 'Cliente')} ${o.phone ? '· ' + esc(o.phone) : ''}</div>
+        <div class="muted" ${o.address ? '' : 'style=display:none'}>📍 ${o.address}</div>
+        ${o.items.map(i => `<div class="item"><span>${i.qty}× ${esc(i.name)}</span><span>${fmt(i.total)}</span></div>`).join('')}
+        <div class="tot"><span>Total</span><span>${fmt(o.total)}</span></div>
+        ${o.status === 'preparing' || o.status === 'open'
+          ? `<button class="btn green" data-act="route" data-id="${o.id}">🛵 Iniciar entrega</button>`
+          : ''}
+        ${o.status === 'route'
+          ? `<button class="btn green" data-act="delivered" data-id="${o.id}">✅ Confirmar entrega</button>`
+          : ''}
+      `;
+      wrap.appendChild(card);
+    });
+    wrap.querySelectorAll('[data-act]').forEach(b => b.onclick = () => act(b.dataset.act, b.dataset.id));
+  }
+  function esc(s) { return escapeHtml(s); }
+  function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  async function act(action, id) {
+    const current = orders.find(o => o.id === id);
+    if (!current) return;
+    if (action === 'route') {
+      if (!navigator.geolocation) { toast('GPS indisponível'); return; }
+      try {
+        await api(`/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'route' }) });
+        startGps(id);
+        toast('Entrega iniciada! Rastreio ativo.');
+      } catch (e) { toast(e.message); }
+    }
+    if (action === 'delivered') {
+      try {
+        await api(`/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'delivered' }) });
+        stopGps();
+        toast('Entrega confirmada! 🎉');
+        orders = orders.filter(o => o.id !== id);
+        render();
+      } catch (e) { toast(e.message); }
+    }
+  }
+
+  function startGps(orderId) {
+    stopGps();
+    $('gpsBar').style.display = ''; $('gpsBarOff').style.display = 'none';
+    watchId = navigator.geolocation.watchPosition(pos => {
+      api('/courier/location', {
+        method: 'POST',
+        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      }).catch(() => {});
+      const o = orders.find(x => x.id === orderId);
+      if (o) { o.track = o.track || {}; o.track.lat = pos.coords.latitude; o.track.lng = pos.coords.longitude; }
+      showMap(pos.coords.latitude, pos.coords.longitude);
+    }, () => {
+      $('gpsBar').style.display = 'none'; $('gpsBarOff').style.display = '';
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+  }
+  function stopGps() {
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    $('gpsBar').style.display = 'none'; $('gpsBarOff').style.display = '';
+  }
+  function showMap(lat, lng) {
+    if (window.__leafletMissing) return;
+    const m = $('map');
+    m.style.display = '';
+    if (map) { courierMark.setLatLng([lat, lng]); map.setView([lat, lng], 15); return; }
+    map = L.map('map').setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(map);
+    courierMark = L.marker([lat, lng], { icon: L.divIcon({ html: '🛵', className: '', iconSize: [34, 34] }) }).addTo(map);
+    if (store && store.storeLat) {
+      L.marker([store.storeLat, store.storeLng], { icon: L.divIcon({ html: '🏪', className: '', iconSize: [34, 34] }) }).addTo(map).bindPopup('Loja');
+    }
+  }
+
+  function connectSSE() {
+    if (sse) sse.close();
+    sse = new EventSource('/api/sse?channels=orders');
+    sse.addEventListener('order', e => {
+      const { order } = JSON.parse(e.data);
+      const idx = orders.findIndex(o => o.id === order.id);
+      if (idx >= 0) orders[idx] = order; else orders.unshift(order);
+      render();
+      $('hSub').textContent = `${orders.filter(o => o.status === 'route').length} em rota · ${orders.length} entregas`;
+    });
+  }
+
+  async function init() {
+    buildPinpad();
+    if (token) {
+      try {
+        const me = await api('/me');
+        user = me.user;
+        showUser();
+        await loadData();
+        return;
+      } catch (e) { sessionStorage.removeItem('cw_token'); token = ''; }
+    }
+    $('loginView').style.display = '';
+    const settings = await fetch('/api/health').then(r => r.json()).catch(() => ({}));
+    if (settings.name) { $('storeName').textContent = settings.name; document.title = settings.name + ' · Entregador'; }
+  }
+  $('logoutBtn').onclick = () => {
+    sessionStorage.removeItem('cw_token'); token = ''; user = null; stopGps(); if (sse) sse.close();
+    $('appView').style.display = 'none'; $('loginView').style.display = ''; inputs().forEach(i => i.value = '');
+  };
+  init();
+})();
+</script>
+</body>
+</html>

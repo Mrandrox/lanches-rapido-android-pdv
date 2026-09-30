@@ -1,0 +1,73 @@
+{
+  "name": "lanches-pdv",
+  "productName": "Lanches Rápido",
+  "version": "2.0.0",
+  "description": "PDV + delivery com IA no WhatsApp, rastreio em tempo real com mapa e impressão térmica 80mm",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server/index.js",
+    "smoke": "SMOKE=1 electron .",
+    "icon": "node build/make-icon.js",
+    "pack:win": "electron-builder --win --x64 --config",
+    "dist:win": "electron-builder --win --x64 --config",
+    "android:bundle": "cd android && gradle bundleRelease 2>/dev/null || ./gradlew bundleRelease",
+    "android:apk": "cd android && gradle assembleRelease 2>/dev/null || ./gradlew assembleRelease"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "optionalDependencies": {
+    "whatsapp-web.js": "^1.34.7"
+  },
+  "build": {
+    "appId": "com.lanchesrapido.pdv",
+    "productName": "Lanches Rápido",
+    "asar": true,
+    "compression": "normal",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "server/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "browser/win/chrome",
+        "to": "wa-browser/chrome",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "build/icon.ico",
+      "legalTrademarks": "Lanches Rápido",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lanches Rápido",
+      "artifactName": "Lanches-Rapido-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Lanches-Rapido-${version}.${ext}"
+    }
+  }
+}

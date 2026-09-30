@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a" id="meta-theme">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Acompanhar Pedido</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="window.__leafletMissing=true"></script>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+  --acc:#16a34a; --acc-2:#15803d; --soft:#dcfce7; --danger:#dc2626;
+  --radius:16px; --shadow:0 2px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  -webkit-tap-highlight-color:transparent;
+}
+header{
+  position:sticky; top:0; z-index:10; background:var(--card);
+  border-bottom:1px solid var(--line); padding:12px 16px;
+  display:flex; align-items:center; gap:12px; box-shadow:var(--shadow);
+}
+header img{width:40px; height:40px; object-fit:contain; border-radius:10px; background:var(--soft)}
+header .brand{flex:1; min-width:0}
+header .brand strong{display:block; font-size:15px; line-height:1.2}
+header .brand span{font-size:12px; color:var(--muted)}
+.badge{
+  font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px;
+  background:var(--soft); color:var(--acc-2); white-space:nowrap;
+}
+main{max-width:560px; margin:0 auto; padding:16px 16px 40px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:var(--shadow)}
+.row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+h1{font-size:18px; margin-bottom:2px}
+.num{color:var(--muted); font-size:13px}
+.empty{color:var(--muted); text-align:center; padding:40px 0; font-size:14px}
+
+/* status */
+.status-big{text-align:center; padding:22px 16px}
+.status-big .ico{font-size:46px; display:block; margin-bottom:8px}
+.status-big h2{font-size:20px}
+.status-big p{color:var(--muted); font-size:13px; margin-top:4px}
+.timeline{display:flex; align-items:flex-start; margin-top:22px; position:relative}
+.timeline::before{content:''; position:absolute; left:13px; top:26px; bottom:10px; width:2px; background:var(--line)}
+.step{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; z-index:1}
+.step .dot{width:26px; height:26px; border-radius:50%; background:var(--card); border:2px solid var(--line); display:grid; place-items:center; font-size:12px}
+.step.done .dot{background:var(--acc); border-color:var(--acc); color:#fff}
+.step.active .dot{background:var(--acc-2); border-color:var(--acc-2); color:#fff; box-shadow:0 0 0 5px var(--soft)}
+.step small{font-size:10px; color:var(--muted); text-align:center; line-height:1.2}
+
+/* mapa */
+#map{height:220px; border-radius:12px; overflow:hidden; z-index:1}
+.map-note{font-size:12px; color:var(--muted); margin-top:6px; display:flex; gap:12px; flex-wrap:wrap}
+.pill{display:inline-flex; align-items:center; gap:6px}
+.pill .m{width:10px; height:10px; border-radius:50%; display:inline-block; border:2px solid #fff}
+.pill .m.store{background:#3b82f6}
+.pill .m.courier{background:#16a34a}
+
+.items{list-style:none}
+.items li{display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:14px}
+.items li:last-child{border-bottom:none}
+.items .qty{color:var(--muted)}
+.subtotal,.total{display:flex; justify-content:space-between; padding:4px 0; font-size:14px}
+.total{font-weight:800; font-size:16px; border-top:2px solid var(--line); margin-top:6px; padding-top:8px}
+.muted{color:var(--muted); font-size:13px}
+.mt{border-top:1px solid var(--line); padding-top:10px; margin-top:10px}
+a.link{color:var(--acc-2); text-decoration:none; font-weight:600}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  padding:12px; border-radius:12px; font-weight:700; font-size:14px; border:none;
+  background:var(--acc); color:#fff; text-decoration:none; cursor:pointer;
+}
+.btn:active{transform:scale(.99)}
+.btn.secondary{background:var(--line); color:var(--text)}
+.msg{text-align:center; color:var(--danger); font-size:13px; padding:20px}
+footer{text-align:center; color:var(--muted); font-size:11px; padding:16px}
+#mapbar{display:none}
+</style>
+</head>
+<body>
+<header>
+  <img id="logo" alt="logo" style="display:none">
+  <div class="brand">
+    <strong id="storeName">—</strong>
+    <span id="storeMeta"></span>
+  </div>
+  <span class="badge" id="statusBadge">Carregando…</span>
+</header>
+<main>
+  <div id="loading" class="empty">Buscando pedido…</div>
+  <div id="content" style="display:none">
+    <div class="card status-big">
+      <span class="ico" id="statusIco">🕐</span>
+      <h2 id="statusTitle">Recebendo pedido</h2>
+      <p id="statusDesc"></p>
+      <div class="timeline" id="timeline">
+        <div class="step done"><div class="dot">✓</div><small>Recebido</small></div>
+        <div class="step" id="stPreparo"><div class="dot">2</div><small>Preparando</small></div>
+        <div class="step" id="stRota"><div class="dot">3</div><small>Em rota</small></div>
+        <div class="step" id="stEntrega"><div class="dot">4</div><small>Entregue</small></div>
+      </div>
+    </div>
+
+    <div class="card" id="mapCard" style="display:none">
+      <div id="map"></div>
+      <div class="map-note">
+        <span class="pill"><span class="m store"></span> Lanchonete</span>
+        <span class="pill"><span class="m courier"></span> Entregador</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <h1>Pedido <span class="num">#<span id="orderNumber"></span></span></h1>
+        <span id="payMethod" class="badge"></span>
+      </div>
+      <ul class="items" id="items"></ul>
+      <div class="subtotal"><span>Subtotal</span><span id="subtotal"></span></div>
+      <div class="subtotal" id="discRow" style="display:none"><span>Desconto</span><span id="discount"></span></div>
+      <div class="subtotal" id="feeRow" style="display:none"><span>Taxa de entrega</span><span id="deliveryFee"></span></div>
+      <div class="total"><span>Total</span><span id="total"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="muted">Cliente</span><span id="customer"></span></div>
+      <div class="row mt"><span class="muted">Endereço</span><span id="address"></span></div>
+      <div class="row mt"><span class="muted">Entregador</span><span id="courier">—</span></div>
+      <div class="row mt"><span class="muted">Observações</span><span id="note"></span></div>
+    </div>
+
+    <div class="card" style="display:none" id="callCard">
+      <div class="row">
+        <a class="btn" id="callBtn" href="#">📞 Falar com a loja</a>
+      </div>
+    </div>
+  </div>
+  <div id="notfound" class="msg" style="display:none">☹️ Pedido não encontrado. Confira o link.</div>
+</main>
+<footer id="footer"></footer>
+
+<script>
+(function () {
+  const orderId = location.pathname.split('/').pop();
+  const $ = id => document.getElementById(id);
+  let map = null, courierMarker = null, storeMarker = null, order = null;
+
+  const STATUS = {
+    open:      { ico: '🕐', label: 'Pedido recebido',  desc: 'Estamos preparando seu pedido!',                    level: 1 },
+    preparing: { ico: '🍳', label: 'Em preparo',       desc: 'A cozinha está caprichando no seu lanche.',         level: 2 },
+    route:     { ico: '🛵', label: 'Saiu para entregar', desc: 'Seu pedido está a caminho! Acompanhe o entregador.', level: 3 },
+    delivered: { ico: '✅', label: 'Entregue',         desc: 'Aproveite sua refeição!',                            level: 4 },
+    canceled:  { ico: '😕', label: 'Pedido cancelado', desc: 'O pedido foi cancelado pela loja.',                  level: 0 },
+    finished:  { ico: '🍔', label: 'Pronto',           desc: 'Seu pedido está pronto para retirada no balcão.',    level: 4 },
+  };
+
+  function fmt(v) {
+    return order.store.currency + ' ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  }
+
+  function applySettings(s) {
+    document.documentElement.dataset.theme = s.theme === 'dark' ? 'dark' : 'light';
+    $('meta-theme').content = s.theme === 'dark' ? '#0f172a' : '#16a34a';
+    document.title = `${s.name} · Acompanhar pedido`;
+    $('storeName').textContent = s.name;
+    $('storeMeta').textContent = [s.address, s.phone].filter(Boolean).join(' · ');
+    const logo = $('logo');
+    if (s.logo) { logo.src = s.logo; logo.style.display = 'block'; } else logo.style.display = 'none';
+    $('footer').textContent = `${s.name} · ${s.address || ''}`;
+    const call = $('callCard');
+    if (s.phone) { call.style.display = ''; $('callBtn').href = 'https://wa.me/55' + s.phone.replace(/\D/g, ''); }
+  }
+
+  function renderStatus() {
+    const st = STATUS[order.status] || STATUS.open;
+    if (order.status === 'open' && order.type === 'counter') {
+      Object.assign(st, { ico: '🍔', label: 'Pedido recebido', desc: 'Acompanhe pelo WhatsApp.' });
+    }
+    $('statusIco').textContent = st.ico;
+    $('statusTitle').textContent = st.label;
+    $('statusDesc').textContent = st.desc;
+    $('statusBadge').textContent = st.label;
+    $('statusBadge').style.background = order.status === 'canceled' ? '#fee2e2' : '#dcfce7';
+    $('statusBadge').style.color = order.status === 'canceled' ? '#b91c1c' : '#15803d';
+
+    const steps = ['stPreparo', 'stRota', 'stEntrega'];
+    steps.forEach((id, i) => {
+      const el = $(id);
+      const stLevel = i + 2;
+      el.classList.toggle('done', stLevel < st.level);
+      el.classList.toggle('active', stLevel === st.level);
+    });
+    if (order.status === 'canceled') {
+      document.querySelectorAll('#timeline .step').forEach(el => el.classList.remove('done', 'active'));
+    }
+  }
+
+  function renderOrder() {
+    $('content').style.display = '';
+    $('loading').style.display = 'none';
+    $('orderNumber').textContent = order.number;
+    $('payMethod').textContent = order.payment || 'Pendente';
+    const items = $('items');
+    items.innerHTML = '';
+    order.items.forEach(i => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span style="flex:1">${escapeHtml(i.name)}</span><span class="qty">${i.qty} × ${fmt(i.price)}</span><span style="min-width:70px;text-align:right">${fmt(i.total)}</span>`;
+      items.appendChild(li);
+    });
+    $('subtotal').textContent = fmt(order.subtotal);
+    if (order.discount > 0) { $('discRow').style.display = ''; $('discount').textContent = '- ' + fmt(order.discount); }
+    if (order.type === 'delivery') { $('feeRow').style.display = ''; $('deliveryFee').textContent = fmt(order.deliveryFee); }
+    $('total').textContent = fmt(order.total);
+    $('customer').textContent = order.customer || '—';
+    $('address').textContent = order.address || '—';
+    $('courier').textContent = order.courierName || (order.status === 'route' ? 'Saindo para entrega…' : 'Aguardando entregador');
+    $('note').textContent = order.note || '—';
+
+    renderStatus();
+    renderMap();
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s; return d.innerHTML;
+  }
+
+  function renderMap() {
+    const mapCard = $('mapCard');
+    const liveRoute = order.status === 'route';
+    if (!liveRoute) { mapCard.style.display = 'none'; return; }
+    if (window.__leafletMissing) { mapCard.style.display = 'none'; return; }
+    mapCard.style.display = '';
+
+    const center = [order.store.storeLat || -23.55, order.store.storeLng || -46.63];
+    if (!map) {
+      map = L.map('map').setView(center, 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(map);
+      storeMarker = L.marker(center, { icon: L.divIcon({ html: '🏪', className: '', iconSize: [34, 34] }) }).addTo(map).bindPopup('Nossa loja');
+      courierMarker = L.marker([0, 0], { icon: L.divIcon({ html: '🛵', className: '', iconSize: [34, 34] }) }).addTo(map).bindPopup('Entregador');
+    }
+    if (order.track && order.track.lat) {
+      courierMarker.setLatLng([order.track.lat, order.track.lng]);
+      map.fitBounds([storeMarker.getLatLng(), courierMarker.getLatLng()].map(l => [l.lat, l.lng]), { padding: [40, 40] });
+    } else {
+      map.setView(center, 14);
+    }
+  }
+
+  function linkSSE() {
+    const es = new EventSource(`/api/sse?channels=order:${orderId}`);
+    es.addEventListener('order', e => {
+      const data = JSON.parse(e.data);
+      order = data.order;
+      renderOrder();
+    });
+    es.addEventListener('location', async e => {
+      const data = JSON.parse(e.data);
+      if (data.orderId !== orderId || !order.track) return;
+      order.track = { ...order.track, lat: data.lat, lng: data.lng, accuracy: data.accuracy, updatedAt: data.updatedAt };
+      if (courierMarker) courierMarker.setLatLng([data.lat, data.lng]);
+      if (order.status === 'route' || order.status === 'preparing') {
+        order.status = 'route';
+        renderStatus();
+        renderMap();
+      }
+      const popup = courierMarker.getPopup();
+      if (popup && popup.isOpen()) popup.setContent('🛵 Entregador em movimento');
+    });
+    es.onerror = () => { /* reconecta sozinho */ };
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      if (!res.ok) throw new Error('nf');
+      order = await res.json();
+      applySettings(order.store);
+      renderOrder();
+      linkSSE();
+      document.title = `${order.store.name} · Pedido #${order.number}`;
+    } catch (e) {
+      $('loading').style.display = 'none';
+      $('notfound').style.display = '';
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

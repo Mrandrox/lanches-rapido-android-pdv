@@ -1,0 +1,13 @@
+{
+  "name": "bebidas-ia",
+  "productName": "Bebidas IA",
+  "version": "0.1.0",
+  "description": "Atendente IA de vendas de bebidas com carrinho, pedidos em tempo real, painel e rastreio",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "smoke": "SMOKE=1 node server/index.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
