@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "LanchesRapido"
 include(":app")
+include(":bloco")
