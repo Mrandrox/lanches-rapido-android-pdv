@@ -10,6 +10,14 @@ App **web** (roda no navegador) feito para o balcão: o mesmo código funciona n
 - 📱 **Instalável** (PWA): Adicionar à Tela de Início, igual a um app nativo.
 - 🔄 **Sincroniza** celular ↔ PC em tempo real (SSE) — o caixa e a cozinha veem o mesmo.
 
+### App nativo Android
+
+O projeto também inclui um app Android separado em `android/bloco`, com pedidos, cronômetros, lembretes e histórico em banco SQLite local. Para gerar o APK instalável, na raiz do projeto execute `npm run android:bloco-apk`; o arquivo será criado em `android/bloco/build/outputs/apk/release/bloco-release.apk`. O app nativo funciona offline e não substitui a versão web/PWA descrita abaixo. O cronômetro atualiza na tela do app, mas ainda não manda alertas em segundo plano.
+
+Em Ajustes no Android, informe o IP do computador e a porta `4191`, o mesmo Wi-Fi e o PIN do servidor para usar **Importar**/**Exportar**. A transferência é manual e idempotente: registros correspondentes mantêm o mesmo identificador; em conflito, vence a última cópia enviada. Importar não apaga dados que só existem localmente; exportar não remove os registros ausentes nem os pedidos na Lixeira. Para impressão, configure no computador uma impressora de rede por IP (TCP 9100 ou HTTP) e use **Imprimir** no pedido, **Imprimir bloco** nos lembretes ou **Imprimir teste** nos Ajustes. O computador deve permanecer ligado com o servidor aberto. Esta integração usa a API e o serviço ESC/POS deste projeto, sem dependências externas adicionais. Use HTTP somente em rede local confiável; para acesso remoto configure HTTPS.
+
+Os testes de integração do protocolo rodam com `npm --prefix pedidos test` (Node.js 18+).
+
 ## Rodar
 
 Requer **Node.js 18+**. Zero dependências (só Node puro).
@@ -146,4 +154,6 @@ Banco único em JSON: `~/.config/bloco-pedidos/data.json` (Linux),
 | `POST` `PATCH` `DELETE` | `/api/notes[/:id]` | bloco de notas |
 | `PATCH` | `/api/settings` | loja, prazos, impressora, PIN |
 | `POST` | `/api/print-http` | impressão em impressoras HTTP |
+| `POST` | `/api/mobile/sync` | sincronização manual e idempotente com o app Android |
+| `POST` | `/api/mobile/print` | encaminha cupons ESC/POS à impressora configurada |
 | `WS` | `/print?token=` | ponte de impressão (ESC/POS) para a porta 9100 |
